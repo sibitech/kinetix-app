@@ -302,6 +302,7 @@ const TabManage = () => {
         setIsSavingAppointment(false);
         setOpenBookDialog(false);
         await loadAppointments();
+        if (window.refreshDashboardCards) window.refreshDashboardCards();
       }
     } catch (error) {
       setBookNotification({ open: true, message: 'Failed to save appointment.', severity: 'error' });
