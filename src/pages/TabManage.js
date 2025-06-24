@@ -4,7 +4,6 @@ import {
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Dialog, DialogActions,
   DialogContent, DialogTitle, TextField, Button,
-  FormControl, InputLabel, Select, MenuItem,
   Grid, Snackbar, Alert, CircularProgress
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -12,15 +11,12 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { fetchAppointmentsByDateAndByLocation, fetchClinicLocations, updateAppointment, deleteAppointment } from '../api/userApi';
+import { fetchAppointmentsByDateAndByLocation, updateAppointment, deleteAppointment } from '../api/userApi';
 import { useAuth } from '../context/AuthContext';
 
 const TabManage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState([]);
-  const [clinicLocations, setClinicLocations] = useState([]);
-  const [selectedClinicLocation, setSelectedClinicLocation] = useState(null);
-  const [locationChanged, setLocationChanged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentAppointment, setCurrentAppointment] = useState(null);
@@ -28,29 +24,11 @@ const TabManage = () => {
   const { user } = useAuth();
   const [isSavingAppointment, setIsSavingAppointment] = useState(false);
 
-  // Fetch clinic locations only once when component mounts
-  useEffect(() => {
-    const loadLocations = async () => {
-      try {
-        const locations = await fetchClinicLocations();
-        setClinicLocations(locations);
-      } catch (error) {
-        setNotification({
-          open: true,
-          message: 'Failed to load clinic locations',
-          severity: 'error'
-        });
-      }
-    };
-
-    loadLocations();
-  }, []); // Empty dependency array means this runs once on mount
-
-  // Memoized function to fetch appointments
+  // Memoized function to fetch appointments (always use clinic_id 1)
   const loadAppointments = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchAppointmentsByDateAndByLocation(selectedDate, selectedClinicLocation);
+      const data = await fetchAppointmentsByDateAndByLocation(selectedDate, 1);
       setAppointments(data);
     } catch (error) {
       setNotification({
@@ -61,9 +39,9 @@ const TabManage = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, selectedClinicLocation]);
+  }, [selectedDate]);
 
-  // Fetch appointments when date or location changes
+  // Fetch appointments when date changes
   useEffect(() => {
     loadAppointments();
   }, [loadAppointments]);
@@ -71,31 +49,6 @@ const TabManage = () => {
   // Handle date change
   const handleDateChange = (newDate) => {
     setSelectedDate(newDate);
-  };
-
-  // Handle location change
-  const handleLocationChange = (event) => {
-    const value = event.target.value;
-    if (value !== "none") {
-      setSelectedClinicLocation(value);
-    } else {
-      setSelectedClinicLocation(null);
-    }
-  };
-
-  // Handle location change
-  const handleCurrentAppointmentLocationChange = (event) => {
-    const value = event.target.value;
-    const previousValue = currentAppointment.clinic_id;
-
-    // Only mark as changed if the values are different
-    if (value !== previousValue) {
-      setLocationChanged(true);
-    }
-    setCurrentAppointment(prev => ({
-      ...prev,
-      clinic_id: value === "none" ? null : value
-    }));
   };
 
   // Open edit dialog
@@ -120,7 +73,7 @@ const TabManage = () => {
     }));
   };
 
-  // Save appointment changes
+  // Save appointment changes (always use clinic_id 1)
   const handleSaveChanges = async () => {
     if (isSavingAppointment) return;
     try {
@@ -136,22 +89,18 @@ const TabManage = () => {
         notes: currentAppointment.notes,
         amount: currentAppointment.amount,
         updated_by: currentUser,
-        clinic_id: currentAppointment.clinic_id,
+        clinic_id: 1,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
       };
 
       const result = await updateAppointment(payload);
 
       if (result.success) {
-        // Find the clinic location name before updating the UI
-        const selectedClinic = clinicLocations.find(
-          clinic => clinic.id === currentAppointment.clinic_id
-        );
-
-        // Create updated appointment with the clinic location name
+        // Create updated appointment with the clinic location name (hardcoded as 'Clinic 1')
         const updatedAppointment = {
           ...currentAppointment,
-          clinic_location: selectedClinic ? selectedClinic.name : 'Unknown'
+          clinic_location: 'Clinic 1',
+          clinic_id: 1
         };
         // Update the appointments list with updated data
         setAppointments(appointments.map(app =>
@@ -166,10 +115,7 @@ const TabManage = () => {
 
         handleCloseDialog();
         // Then reload the appointments data
-        if (locationChanged) {
-          await loadAppointments();
-          setLocationChanged(false)
-        }
+        await loadAppointments();
       } else {
         setNotification({
           open: true,
@@ -247,29 +193,13 @@ const TabManage = () => {
           Manage Appointments
         </Typography>
 
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
           <DatePicker
             label="Appointment Date"
             value={selectedDate}
             onChange={handleDateChange}
             sx={{ width: 220 }}
           />
-          <FormControl sx={{ width: 220 }}>
-            <InputLabel>Clinic Location</InputLabel>
-            <Select
-              name="ClinicLocation"
-              label="Clinic Location"
-              value={selectedClinicLocation || "none"}
-              onChange={handleLocationChange}
-            >
-              <MenuItem value="none">All Locations</MenuItem>
-              {clinicLocations.map((clinicLocation) => (
-                <MenuItem key={clinicLocation.id} value={clinicLocation.id}>
-                  {clinicLocation.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
         </Box>
 
         {loading ? (
@@ -286,7 +216,6 @@ const TabManage = () => {
                   <TableCell>Actions</TableCell>
                   <TableCell>Patient Name</TableCell>
                   <TableCell>Time</TableCell>
-                  <TableCell>Location</TableCell>
                   <TableCell>Status</TableCell>
                 </TableRow>
               </TableHead>
@@ -303,7 +232,6 @@ const TabManage = () => {
                     </TableCell>
                     <TableCell>{appointment.patient_name}</TableCell>
                     <TableCell>{formatTime(appointment.appointment_time)}</TableCell>
-                    <TableCell>{appointment.clinic_location}</TableCell>
                     <TableCell>{appointment.status}</TableCell>
                   </TableRow>
                 ))}
@@ -338,36 +266,13 @@ const TabManage = () => {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      name="status"
-                      value={currentAppointment.status || ''}
-                      onChange={handleInputChange}
-                      label="Status"
-                    >
-                      <MenuItem value="scheduled">Scheduled</MenuItem>
-                      <MenuItem value="completed">Completed</MenuItem>
-                      <MenuItem value="cancelled">Cancelled</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl sx={{ width: 220 }}>
-                    <InputLabel>Clinic Location</InputLabel>
-                    <Select
-                      name="ClinicLocation"
-                      label="Clinic Location"
-                      value={currentAppointment.clinic_id}
-                      onChange={handleCurrentAppointmentLocationChange}
-                    >
-                      {clinicLocations.map((clinicLocation) => (
-                        <MenuItem key={clinicLocation.id} value={clinicLocation.id}>
-                          {clinicLocation.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <TextField
+                    fullWidth
+                    label="Status"
+                    name="status"
+                    value={currentAppointment.status || ''}
+                    onChange={handleInputChange}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField

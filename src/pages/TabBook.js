@@ -1,14 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     Box,
     TextField,
     Button,
     Typography,
     Stack,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
     CircularProgress,
     Snackbar,
     Alert,
@@ -17,7 +13,7 @@ import {
     ListItemText,
     Divider
 } from '@mui/material';
-import { persistAppointment, fetchClinicLocations, searchPatientsByPhone } from '../api/userApi';
+import { persistAppointment, searchPatientsByPhone } from '../api/userApi';
 import { useAuth } from '../context/AuthContext';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -29,15 +25,11 @@ const TabBook = () => {
         name: '',
         patient_id: null, // New field to store patient ID
         datetime: '',
-        clinicLocation: '',
         notes: ''
     });
 
     const [errors, setErrors] = useState({});
     const [submitMsg, setSubmitMsg] = useState('');
-    const [clinicLocations, setClinicLocations] = useState([]);
-    const [loadingLocations, setLoadingLocations] = useState(true);
-    const [locationFetchError, setLocationFetchError] = useState('');
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const { user } = useAuth();
     const [isSavingAppointment, setIsSavingAppointment] = useState(false);
@@ -50,27 +42,6 @@ const TabBook = () => {
     const [openSuggestions, setOpenSuggestions] = useState(false);
     // New state for patient creation modal
     const [showPatientForm, setShowPatientForm] = useState(false);
-
-    useEffect(() => {
-        const loadLocations = async () => {
-            try {
-                const locations = await fetchClinicLocations();
-                setClinicLocations(locations);
-                setLoadingLocations(false);
-            } catch (error) {
-                console.error("Failed to load clinic locations:", error);
-                setLocationFetchError('Failed to load clinic locations.');
-                setLoadingLocations(false);
-                setNotification({
-                    open: true,
-                    message: 'Failed to load clinic locations',
-                    severity: 'error'
-                });
-            }
-        };
-
-        loadLocations();
-    }, []);
 
     // Search for patients when phone number changes
     const searchPatients = useCallback(async (phoneNumber) => {
@@ -150,10 +121,6 @@ const TabBook = () => {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    const handleLocationChange = (event) => {
-        setForm((prev) => ({ ...prev, clinicLocation: event.target.value }));
-    };
-
     const validate = () => {
         const newErrors = {};
         if (!form.name.trim()) newErrors.name = 'Required';
@@ -162,7 +129,6 @@ const TabBook = () => {
         if (form.phone && !/^[6-9]\d{9}$/.test(form.phone))
             newErrors.phone = 'Invalid Indian number';
         if (!form.datetime) newErrors.datetime = 'Required';
-        if (!form.clinicLocation) newErrors.clinicLocation = 'Required';
         return newErrors;
     };
 
@@ -177,6 +143,7 @@ const TabBook = () => {
         const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const payload = {
             ...form,
+            clinicLocation: 1,
             status: 'scheduled',
             updated_at: new Date().toISOString(),
             updated_by: currentUser,
@@ -200,7 +167,6 @@ const TabBook = () => {
                     name: '',
                     patient_id: null,
                     datetime: '',
-                    clinicLocation: '',
                     notes: ''
                 });
                 setSelectedPatient(null);
@@ -357,42 +323,6 @@ const TabBook = () => {
                         fullWidth
                         InputLabelProps={{ shrink: true }}
                     />
-
-                    {/* Clinic location selection */}
-                    <FormControl fullWidth required error={!!errors.clinicLocation} disabled={loadingLocations}>
-                        <InputLabel id="clinic-location-label">Clinic Location</InputLabel>
-                        <Select
-                            labelId="clinic-location-label"
-                            id="clinic-location"
-                            name="clinicLocation"
-                            value={form.clinicLocation}
-                            label="Clinic Location"
-                            onChange={handleLocationChange}
-                            renderValue={(value) => {
-                                const selectedLocation = clinicLocations.find(location => location.id === value);
-                                return selectedLocation ? selectedLocation.name : <em>Select a location</em>;
-                            }}
-                        >
-                            {loadingLocations ? (
-                                <MenuItem value="" disabled>
-                                    <CircularProgress size={20} /> Loading locations...
-                                </MenuItem>
-                            ) : locationFetchError ? (
-                                <MenuItem value="" disabled>
-                                    {locationFetchError}
-                                </MenuItem>
-                            ) : (
-                                clinicLocations.map((location) => (
-                                    <MenuItem key={location.id} value={location.id}>
-                                        {location.name}
-                                    </MenuItem>
-                                ))
-                            )}
-                        </Select>
-                        {errors.clinicLocation && (
-                            <Typography variant="caption" color="error">{errors.clinicLocation}</Typography>
-                        )}
-                    </FormControl>
 
                     {/* Notes field */}
                     <TextField

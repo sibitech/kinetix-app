@@ -100,13 +100,12 @@ export const fetchClinicLocations = async () => {
  * @param {Date} date - Date object
  * @returns {Array} Array of appointments
  */
-export const fetchAppointmentsByDateAndByLocation = async (date, location) => {
+export const fetchAppointmentsByDateAndByLocation = async (date, location = 1) => {
   try {
     const formattedDate = formatDateForAPI(date);
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
     const response = await axios.get(`${API_BASE_URL}/get-appointments`, {
-      params: { date: formattedDate, timeZone: timeZone, location: location }
+      params: { date: formattedDate, timeZone: timeZone, location: location || 1 }
     });
 
     if (response.data.success) {
