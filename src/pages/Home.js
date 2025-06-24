@@ -36,7 +36,7 @@ function Home() {
   return (
     <div className="home-container">
       <header className="app-header">
-        <h1>Physio One Cbe</h1>
+        <h1>Kinetix</h1>
         <div className="user-profile">
           {user?.photoURL && (
             <img
