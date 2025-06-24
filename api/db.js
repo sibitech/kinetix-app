@@ -20,7 +20,7 @@ async function getUserByEmail(email) {
   try {
     const client = await getPool().connect();
     try {
-      const query = 'SELECT * FROM allowed_users WHERE email = $1';
+      const query = 'SELECT * FROM kx_allowed_users WHERE email = $1';
       const result = await client.query(query, [email]);
       return result.rows[0];
     } finally {
@@ -36,7 +36,7 @@ async function getClinicLocations() {
   try {
     const client = await getPool().connect();
     try {
-      const query = 'SELECT id, name FROM clinic_locations';
+      const query = 'SELECT id, name FROM kx_clinic_locations';
       const result = await client.query(query);
       return result.rows;
     } finally {
@@ -69,7 +69,7 @@ async function persistAppointment(payload) {
       // If we have a patient_id, use that as a foreign key
       if (patient_id) {
         const query = `
-          INSERT INTO appointment 
+          INSERT INTO kx_appointments 
             (appointmaent_date_time, status, patient_name, clinic_location, updated_at, updated_by, patient_phone_number, diagnosis, notes, patient_id)
           VALUES 
             ($1, 'scheduled', $2, $3, $4, $5, $6, '', $7, $8)
@@ -88,7 +88,7 @@ async function persistAppointment(payload) {
       } else {
         // Backward compatibility for appointments without patient_id
         const query = `
-          INSERT INTO appointment 
+          INSERT INTO kx_appointments 
             (appointmaent_date_time, status, patient_name, clinic_location, updated_at, updated_by, patient_phone_number, diagnosis, notes)
           VALUES 
             ($1, 'scheduled', $2, $3, $4, $5, $6, '', $7)
@@ -141,8 +141,8 @@ async function fetchAppointmentsByDateAndByLocation(date, timeZone, location) {
         diagnosis,
         notes,
         amount,
-        clinic_locations.name as clinic_location,
-        clinic_locations.id as clinic_id
+        kx_clinic_locations.name as clinic_location,
+        kx_clinic_locations.id as clinic_id
       `;
 
       let query;
@@ -152,22 +152,22 @@ async function fetchAppointmentsByDateAndByLocation(date, timeZone, location) {
         // If no location specified, fetch all appointments for the date
         query = `
           SELECT ${commonColumns}
-          FROM appointment 
-          JOIN clinic_locations ON clinic_locations.id = appointment.clinic_location        
+          FROM kx_appointments as appointment
+          JOIN kx_clinic_locations ON kx_clinic_locations.id = appointment.clinic_location        
           WHERE appointmaent_date_time BETWEEN $1 AND $2
           ORDER BY appointmaent_date_time ASC
         `;
         params = [startDate.toISOString(), endDate.toISOString()];
       } else {
-        // If location is specified, join with clinic_locations and filter by location name
+        // If location is specified, join with kx_clinic_locations and filter by location name
         query = `
           SELECT 
             ${commonColumns}
-          FROM appointment
-          JOIN clinic_locations ON clinic_locations.id = appointment.clinic_location                 
+          FROM kx_appointments as appointment
+          JOIN kx_clinic_locations ON kx_clinic_locations.id = appointment.clinic_location                 
           WHERE 
             appointmaent_date_time BETWEEN $1 AND $2 AND
-            clinic_locations.id = $3
+            kx_clinic_locations.id = $3
           ORDER BY appointmaent_date_time ASC
         `;
         params = [startDate.toISOString(), endDate.toISOString(), location];
@@ -205,7 +205,7 @@ async function updateAppointment(payload) {
       const now = DateTime.fromISO(new Date().toISOString(), { zone: timeZone }).toUTC().toISO();
 
       const query = `
-        UPDATE appointment
+        UPDATE kx_appointments
         SET 
           patient_name = $1,
           patient_phone_number = $2,
@@ -254,7 +254,7 @@ async function deleteAppointment(id) {
     const client = await getPool().connect();
     try {
       const query = `
-        DELETE FROM appointment
+        DELETE FROM kx_appointments
         WHERE id = $1
         RETURNING id
       `;
@@ -281,7 +281,7 @@ async function addAllowedUser(email, isAdmin) {
     const client = await getPool().connect();
     try {
       const query = `
-        INSERT INTO allowed_users (email, is_admin) 
+        INSERT INTO kx_allowed_users (email, is_admin) 
         VALUES ($1, $2) 
         ON CONFLICT (email) DO NOTHING
         RETURNING *
@@ -301,7 +301,7 @@ async function updateAllowedUser(id, email, isAdmin) {
     const client = await getPool().connect();
     try {
       const query = `
-        UPDATE allowed_users
+        UPDATE kx_allowed_users
         SET email = $2, is_admin = $3
         WHERE id = $1
         RETURNING *
@@ -322,7 +322,7 @@ async function deleteAllowedUser(id) {
     const client = await getPool().connect();
     try {
       const query = `
-        DELETE FROM allowed_users
+        DELETE FROM kx_allowed_users
         WHERE id = $1
         RETURNING *
       `;
@@ -343,7 +343,7 @@ async function getAllUsers() {
   try {
     const client = await getPool().connect();
     try {
-      const query = 'SELECT * FROM allowed_users ORDER BY created_at DESC';
+      const query = 'SELECT * FROM kx_allowed_users ORDER BY created_at DESC';
       const result = await client.query(query);
       return result.rows;
     } finally {
@@ -360,7 +360,7 @@ async function getAllPatients() {
   try {
     const client = await getPool().connect();
     try {
-      const query = 'SELECT * FROM patients ORDER BY name';
+      const query = 'SELECT * FROM kx_patients ORDER BY name';
       const result = await client.query(query);
       return result.rows;
     } finally {
@@ -377,7 +377,7 @@ async function getPatientById(id) {
   try {
     const client = await getPool().connect();
     try {
-      const query = 'SELECT * FROM patients WHERE id = $1';
+      const query = 'SELECT * FROM kx_patients WHERE id = $1';
       const result = await client.query(query, [id]);
       return result.rows[0]; // Returns undefined if no patient found
     } finally {
@@ -405,7 +405,7 @@ async function addPatient(patientData) {
       } = patientData;
       
       const query = `
-        INSERT INTO patients (name, dob, sex, email, phone, address, created_at, medical_history)
+        INSERT INTO kx_patients (name, dob, sex, email, phone, address, created_at, medical_history)
         VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7)
         RETURNING *
       `;
@@ -447,7 +447,7 @@ async function updatePatient(patientData) {
       } = patientData;
       
       const query = `
-        UPDATE patients
+        UPDATE kx_patients
         SET 
           name = $1,
           dob = $2,
@@ -487,7 +487,7 @@ async function deletePatient(id) {
     const client = await getPool().connect();
     try {
       const query = `
-        DELETE FROM patients
+        DELETE FROM kx_patients
         WHERE id = $1
         RETURNING id
       `;
@@ -510,7 +510,7 @@ async function searchPatientsByPhone(phoneNumber) {
     try {
       // Using LIKE to do a partial match on phone number
       const query = `
-        SELECT * FROM patients 
+        SELECT * FROM kx_patients 
         WHERE phone LIKE $1
         ORDER BY name
         LIMIT 5
