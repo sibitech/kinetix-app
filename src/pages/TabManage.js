@@ -4,15 +4,17 @@ import {
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Dialog, DialogActions,
   DialogContent, DialogTitle, TextField, Button,
-  Grid, Snackbar, Alert, CircularProgress
+  Grid, Snackbar, Alert, CircularProgress,
+  Stack, Autocomplete, Divider, ListItem, ListItemText
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { fetchAppointmentsByDateAndByLocation, updateAppointment, deleteAppointment } from '../api/userApi';
+import { fetchAppointmentsByDateAndByLocation, updateAppointment, deleteAppointment, persistAppointment, searchPatientsByPhone } from '../api/userApi';
 import { useAuth } from '../context/AuthContext';
+import PatientFormDialog from '../components/PatientFormDialog';
 
 const TabManage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -22,7 +24,23 @@ const TabManage = () => {
   const [currentAppointment, setCurrentAppointment] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   const { user } = useAuth();
+  const [openBookDialog, setOpenBookDialog] = useState(false);
+  // Booking form state (from TabBook.js)
+  const [bookForm, setBookForm] = useState({
+    phone: '',
+    name: '',
+    patient_id: null,
+    datetime: '',
+    notes: ''
+  });
+  const [bookErrors, setBookErrors] = useState({});
+  const [bookNotification, setBookNotification] = useState({ open: false, message: '', severity: 'success' });
   const [isSavingAppointment, setIsSavingAppointment] = useState(false);
+  const [patientSuggestions, setPatientSuggestions] = useState([]);
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [openSuggestions, setOpenSuggestions] = useState(false);
+  const [showPatientForm, setShowPatientForm] = useState(false);
 
   // Memoized function to fetch appointments (always use clinic_id 1)
   const loadAppointments = useCallback(async () => {
@@ -185,6 +203,136 @@ const TabManage = () => {
     });
   };
 
+  // --- Book Appointment logic (from TabBook.js) ---
+  const searchPatients = useCallback(async (phoneNumber) => {
+    if (phoneNumber.length < 3) {
+      setPatientSuggestions([]);
+      setOpenSuggestions(false);
+      return;
+    }
+    try {
+      setLoadingPatients(true);
+      const patients = await searchPatientsByPhone(phoneNumber);
+      if (phoneNumber.length >= 3) {
+        const allOptions = [
+          ...patients,
+          { id: 'create-new', name: 'Create New Patient', phone: phoneNumber }
+        ];
+        setPatientSuggestions(allOptions);
+        setOpenSuggestions(true);
+      } else {
+        setPatientSuggestions(patients);
+        setOpenSuggestions(patients.length > 0);
+      }
+    } catch (error) {
+      // ignore
+    } finally {
+      setLoadingPatients(false);
+    }
+  }, []);
+
+  const handleBookPhoneChange = (e) => {
+    const phoneNumber = e.target.value;
+    setBookForm(prev => ({ ...prev, phone: phoneNumber }));
+    const timer = setTimeout(() => {
+      searchPatients(phoneNumber);
+    }, 300);
+    return () => clearTimeout(timer);
+  };
+
+  const handleBookPatientSelect = (event, patient) => {
+    if (patient) {
+      setSelectedPatient(patient);
+      setBookForm(prev => ({
+        ...prev,
+        name: patient.name,
+        patient_id: patient.id,
+        phone: patient.phone || prev.phone
+      }));
+      setOpenSuggestions(false);
+      setPatientSuggestions([]);
+    } else {
+      setSelectedPatient(null);
+      setBookForm(prev => ({ ...prev, name: '', patient_id: null }));
+    }
+  };
+
+  const handleBookChange = (e) => {
+    setBookForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const validateBook = () => {
+    const newErrors = {};
+    if (!bookForm.name.trim()) newErrors.name = 'Required';
+    if (bookForm.name.length > 100) newErrors.name = 'Max 100 characters';
+    if (!bookForm.phone) newErrors.phone = 'Required';
+    if (bookForm.phone && !/^[6-9]\d{9}$/.test(bookForm.phone)) newErrors.phone = 'Invalid Indian number';
+    if (!bookForm.datetime) newErrors.datetime = 'Required';
+    return newErrors;
+  };
+
+  const handleBookSubmit = async (e) => {
+    if (isSavingAppointment) return;
+    e.preventDefault();
+    const validationErrors = validateBook();
+    setBookErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) return;
+    const currentUser = user?.displayName;
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const payload = {
+      ...bookForm,
+      clinicLocation: 1,
+      status: 'scheduled',
+      updated_at: new Date().toISOString(),
+      updated_by: currentUser,
+      timeZone: userTimeZone
+    };
+    try {
+      setIsSavingAppointment(true);
+      const success = await persistAppointment(payload);
+      setBookNotification({
+        open: true,
+        message: success ? 'Appointment saved successfully.' : 'Failed to save appointment.',
+        severity: success ? 'success' : 'error'
+      });
+      if (success) {
+        setBookForm({ phone: '', name: '', patient_id: null, datetime: '', notes: '' });
+        setSelectedPatient(null);
+        setPatientSuggestions([]);
+        setIsSavingAppointment(false);
+        setOpenBookDialog(false);
+        await loadAppointments();
+      }
+    } catch (error) {
+      setBookNotification({ open: true, message: 'Failed to save appointment.', severity: 'error' });
+      setIsSavingAppointment(false);
+    }
+  };
+
+  const handleBookCloseNotification = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setBookNotification({ ...bookNotification, open: false });
+  };
+
+  const handleCreateNewPatient = () => {
+    setOpenSuggestions(false);
+    setPatientSuggestions([]);
+    setTimeout(() => {
+      setShowPatientForm(true);
+    }, 50);
+  };
+
+  const handlePatientAdded = (newPatient) => {
+    setShowPatientForm(false);
+    setSelectedPatient(newPatient);
+    setBookForm(prev => ({
+      ...prev,
+      name: newPatient.name,
+      patient_id: newPatient.id,
+      phone: newPatient.phone || prev.phone
+    }));
+    setBookNotification({ open: true, message: 'Patient added successfully', severity: 'success' });
+  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -192,6 +340,16 @@ const TabManage = () => {
         <Typography variant="h5" gutterBottom>
           Manage Appointments
         </Typography>
+
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setOpenBookDialog(true)}
+          >
+            Book Appointment
+          </Button>
+        </Box>
 
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
           <DatePicker
@@ -315,6 +473,136 @@ const TabManage = () => {
               Save Changes
             </Button>
           </DialogActions>
+        </Dialog>
+
+        {/* Book Appointment Dialog */}
+        <Dialog open={openBookDialog} onClose={() => setOpenBookDialog(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Book Appointment</DialogTitle>
+          <DialogContent>
+            <Box component="form" onSubmit={handleBookSubmit} noValidate sx={{ maxWidth: 400, mx: 'auto' }}>
+              <Stack spacing={2}>
+                {/* Phone number field first for patient lookup */}
+                <TextField
+                  label="Phone Number"
+                  name="phone"
+                  type="tel"
+                  value={bookForm.phone}
+                  onChange={handleBookPhoneChange}
+                  error={!!bookErrors.phone}
+                  helperText={bookErrors.phone || "Enter phone number to find existing patients"}
+                  fullWidth
+                  required
+                />
+                {/* Patient selector with autocomplete and create new option */}
+                <Autocomplete
+                  options={patientSuggestions}
+                  getOptionLabel={(option) => `${option.name} (${option.phone || 'No phone'})`}
+                  loading={loadingPatients}
+                  value={selectedPatient}
+                  onChange={handleBookPatientSelect}
+                  isOptionEqualToValue={(option, value) => option.id === value?.id}
+                  open={openSuggestions}
+                  onOpen={() => {
+                    if (patientSuggestions.length > 0) {
+                      setOpenSuggestions(true);
+                    }
+                  }}
+                  onClose={() => setOpenSuggestions(false)}
+                  noOptionsText="No matching patients found"
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Patient"
+                      fullWidth
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loadingPatients ? <CircularProgress color="inherit" size={20} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  renderOption={(props, option) => {
+                    if (option.id === 'create-new') {
+                      return (
+                        <React.Fragment key="create-new">
+                          <Divider />
+                          <ListItem {...props} onClick={handleCreateNewPatient}>
+                            <ListItemText primary="➕ Create New Patient" secondary="Add a new patient record" />
+                          </ListItem>
+                        </React.Fragment>
+                      );
+                    }
+                    return (
+                      <ListItem {...props} key={option.id}>
+                        <ListItemText 
+                          primary={option.name} 
+                          secondary={`Phone: ${option.phone || 'N/A'}`} 
+                        />
+                      </ListItem>
+                    );
+                  }}
+                />
+                {/* Patient name field */}
+                <TextField
+                  label="Patient Name"
+                  name="name"
+                  value={bookForm.name}
+                  onChange={handleBookChange}
+                  error={!!bookErrors.name}
+                  helperText={bookErrors.name || "Patient name will be filled automatically when selected above"}
+                  required
+                  fullWidth
+                />
+                {/* Date and time field */}
+                <TextField
+                  label="Appointment Date & Time"
+                  name="datetime"
+                  type="datetime-local"
+                  value={bookForm.datetime}
+                  onChange={handleBookChange}
+                  error={!!bookErrors.datetime}
+                  helperText={bookErrors.datetime}
+                  required
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                />
+                {/* Notes field */}
+                <TextField
+                  label="Notes"
+                  name="notes"
+                  value={bookForm.notes}
+                  onChange={handleBookChange}
+                  multiline
+                  rows={3}
+                  fullWidth
+                />
+                <Button type="submit" variant="contained" color="primary" disabled={isSavingAppointment}>
+                  Submit
+                </Button>
+              </Stack>
+            </Box>
+            <Snackbar
+              open={bookNotification.open}
+              autoHideDuration={5000}
+              onClose={handleBookCloseNotification}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+              <Alert onClose={handleBookCloseNotification} severity={bookNotification.severity} sx={{ width: '100%' }}>
+                {bookNotification.message}
+              </Alert>
+            </Snackbar>
+            {/* Patient Creation Dialog */}
+            <PatientFormDialog 
+              open={showPatientForm}
+              onClose={() => setShowPatientForm(false)}
+              onPatientAdded={handlePatientAdded}
+              initialPhoneNumber={bookForm.phone}
+            />
+          </DialogContent>
         </Dialog>
 
         {/* Notification Snackbar */}
