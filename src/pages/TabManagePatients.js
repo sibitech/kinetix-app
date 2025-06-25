@@ -3,9 +3,9 @@ import {
   Paper, Typography, Box, Button, IconButton,
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Dialog, DialogActions,
-  DialogContent, DialogTitle, TextField, 
+  DialogContent, DialogTitle, TextField,
   Snackbar, Alert, CircularProgress, Grid,
-  FormControl, InputLabel, Select, MenuItem
+  Stack, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -62,12 +62,12 @@ const TabManagePatients = () => {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDifference = today.getMonth() - birthDate.getMonth();
-    
+
     // If birthday hasn't occurred yet this year, subtract 1
     if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
   };
 
@@ -87,6 +87,7 @@ const TabManagePatients = () => {
   };
 
   const handleEditClick = (patient) => {
+    patient.dob = patient.dob ? new Date(patient.dob) : null; // Ensure dob is a Date object
     setCurrentPatient({ ...patient });
     setIsNewPatient(false);
     setOpenDialog(true);
@@ -96,7 +97,7 @@ const TabManagePatients = () => {
     if (window.confirm('Are you sure you want to delete this patient?')) {
       try {
         const result = await deletePatient(id);
-        
+
         if (result.success) {
           setPatients(patients.filter(patient => patient.id !== id));
           setNotification({
@@ -145,7 +146,7 @@ const TabManagePatients = () => {
     if (isSavingPatient) return;
     try {
       setIsSavingPatient(true);
-      
+
       let result;
       if (isNewPatient) {
         result = await addPatient(currentPatient);
@@ -220,9 +221,9 @@ const TabManagePatients = () => {
                 <TableRow>
                   <TableCell>Actions</TableCell>
                   <TableCell>Name</TableCell>
-                  <TableCell>Age</TableCell>
-                  <TableCell>Sex</TableCell>
                   <TableCell>Phone</TableCell>
+                  <TableCell>Age</TableCell>
+                  <TableCell>Sex</TableCell>                  
                   <TableCell>Email</TableCell>
                 </TableRow>
               </TableHead>
@@ -238,9 +239,9 @@ const TabManagePatients = () => {
                       </IconButton>
                     </TableCell>
                     <TableCell>{patient.name}</TableCell>
-                    <TableCell>{calculateAge(patient.dob)}</TableCell>
-                    <TableCell>{patient.sex}</TableCell>
                     <TableCell>{patient.phone}</TableCell>
+                    <TableCell>{calculateAge(patient.dob)}</TableCell>
+                    <TableCell>{patient.sex}</TableCell>                    
                     <TableCell>{patient.email}</TableCell>
                   </TableRow>
                 ))}
@@ -250,11 +251,20 @@ const TabManagePatients = () => {
         )}
 
         {/* Add/Edit Patient Dialog */}
-        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
           <DialogTitle>{isNewPatient ? 'Add New Patient' : 'Edit Patient'}</DialogTitle>
           <DialogContent>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6}>
+            <Box component="form" noValidate sx={{ maxWidth: 400, mx: 'auto' }}>
+              <Stack spacing={2}>
+                <TextField
+                  fullWidth
+                  label="Phone Number"
+                  name="phone"
+                  value={currentPatient.phone || ''}
+                  onChange={handleInputChange}
+                  required
+                  type='tel'
+                />
                 <TextField
                   fullWidth
                   label="Patient Name"
@@ -263,17 +273,6 @@ const TabManagePatients = () => {
                   onChange={handleInputChange}
                   required
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Phone Number"
-                  name="phone"
-                  value={currentPatient.phone || ''}
-                  onChange={handleInputChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Sex</InputLabel>
                   <Select
@@ -281,14 +280,13 @@ const TabManagePatients = () => {
                     value={currentPatient.sex || ''}
                     onChange={handleInputChange}
                     label="Sex"
+                    required
                   >
                     <MenuItem value="male">Male</MenuItem>
                     <MenuItem value="female">Female</MenuItem>
                     <MenuItem value="other">Other</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
                 <DatePicker
                   label="Date of Birth"
                   value={currentPatient.dob}
@@ -296,9 +294,9 @@ const TabManagePatients = () => {
                   disableFuture
                   sx={{ width: '100%' }}
                   slotProps={{ textField: { fullWidth: true } }}
+                  required
+                  format="dd/MM/yyyy"
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Email"
@@ -307,8 +305,6 @@ const TabManagePatients = () => {
                   value={currentPatient.email || ''}
                   onChange={handleInputChange}
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Address"
@@ -316,8 +312,6 @@ const TabManagePatients = () => {
                   value={currentPatient.address || ''}
                   onChange={handleInputChange}
                 />
-              </Grid>
-              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Medical History"
@@ -327,8 +321,8 @@ const TabManagePatients = () => {
                   value={currentPatient.medical_history || ''}
                   onChange={handleInputChange}
                 />
-              </Grid>
-            </Grid>
+              </Stack>
+            </Box>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Cancel</Button>
