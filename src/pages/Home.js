@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BottomNavigation, BottomNavigationAction, Paper, Grid, CircularProgress, Typography, Box } from '@mui/material';
-import ManageIcon from '@mui/icons-material/Settings';
+import ManageIcon from '@mui/icons-material/Book';
 import ReportIcon from '@mui/icons-material/Assessment';
 import PeopleIcon from '@mui/icons-material/People';
 import PersonIcon from '@mui/icons-material/Person';
@@ -45,8 +45,8 @@ function Home() {
 
   const tabs = [
     <TabManage />,
-    <TabReport />,
     <TabManagePatients />,
+    <TabReport />,
     user.isAdmin ? <TabManageUsers /> : null
   ].filter(Boolean);
 
@@ -74,75 +74,69 @@ function Home() {
         </div>
       </header>
 
-      <main className="app-content">
-        {/* Appointment Status Cards - Compact, centered, with light pastel backgrounds */}
-        <Grid container spacing={3} justifyContent="center" sx={{ mb: 4, maxWidth: 900, mx: 'auto' }}>
-          <Grid item xs={12} sm={4}>
-            <Box sx={{
-              background: 'linear-gradient(135deg, #e3f2fd 60%, #bbdefb 100%)',
-              color: '#1976d2',
-              borderRadius: 2,
-              p: 2.5,
-              minHeight: 90,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 2
-            }}>
-              <Typography variant="h6" align="center" sx={{ mb: 1, fontWeight: 500 }}>Today's</Typography>
-              {apptStats.loading ? (
-                <CircularProgress size={28} sx={{ color: '#1976d2' }} />
-              ) : (
-                <Typography variant="h3" align="center" sx={{ fontWeight: 700 }}>{apptStats.today}</Typography>
-              )}
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Box sx={{
-              background: 'linear-gradient(135deg, #e8f5e9 60%, #c8e6c9 100%)',
-              color: '#2e7d32',
-              borderRadius: 2,
-              p: 2.5,
-              minHeight: 90,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 2
-            }}>
-              <Typography variant="h6" align="center" sx={{ mb: 1, fontWeight: 500 }}>Completed</Typography>
-              {apptStats.loading ? (
-                <CircularProgress size={28} sx={{ color: '#2e7d32' }} />
-              ) : (
-                <Typography variant="h3" align="center" sx={{ fontWeight: 700 }}>{apptStats.completed}</Typography>
-              )}
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Box sx={{
-              background: 'linear-gradient(135deg, #fffde7 60%, #fff9c4 100%)',
-              color: '#f9a825',
-              borderRadius: 2,
-              p: 2.5,
-              minHeight: 90,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 2
-            }}>
-              <Typography variant="h6" align="center" sx={{ mb: 1, fontWeight: 500 }}>Upcoming</Typography>
-              {apptStats.loading ? (
-                <CircularProgress size={28} sx={{ color: '#f9a825' }} />
-              ) : (
-                <Typography variant="h3" align="center" sx={{ fontWeight: 700 }}>{apptStats.upcoming}</Typography>
-              )}
-            </Box>
-          </Grid>
-        </Grid>
-        {/* Updated Section Starts Here */}
-        <div className="app-main-content" style={{ paddingBottom: '80px' }}>
+      <main className="app-content" style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', minHeight: '80vh', margin: '0 auto' }}>
+        {/* Stacked Status Cards - Left */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 180, maxWidth: 220, flexShrink: 0, paddingRight: 2, ml: -10 }}>
+          <Box sx={{
+            background: 'linear-gradient(135deg, #e3f2fd 60%, #bbdefb 100%)',
+            color: '#1976d2',
+            borderRadius: 2,
+            p: 2.5,
+            minHeight: 90,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 2
+          }}>
+            <Typography variant="h6" align="center" sx={{ mb: 1, fontWeight: 500 }}>Today's</Typography>
+            {apptStats.loading ? (
+              <CircularProgress size={28} sx={{ color: '#1976d2' }} />
+            ) : (
+              <Typography variant="h3" align="center" sx={{ fontWeight: 700 }}>{apptStats.today}</Typography>
+            )}
+          </Box>
+          <Box sx={{
+            background: 'linear-gradient(135deg, #e8f5e9 60%, #c8e6c9 100%)',
+            color: '#2e7d32',
+            borderRadius: 2,
+            p: 2.5,
+            minHeight: 90,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 2
+          }}>
+            <Typography variant="h6" align="center" sx={{ mb: 1, fontWeight: 500 }}>Completed</Typography>
+            {apptStats.loading ? (
+              <CircularProgress size={28} sx={{ color: '#2e7d32' }} />
+            ) : (
+              <Typography variant="h3" align="center" sx={{ fontWeight: 700 }}>{apptStats.completed}</Typography>
+            )}
+          </Box>
+          <Box sx={{
+            background: 'linear-gradient(135deg, #fffde7 60%, #fff9c4 100%)',
+            color: '#f9a825',
+            borderRadius: 2,
+            p: 2.5,
+            minHeight: 90,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 2
+          }}>
+            <Typography variant="h6" align="center" sx={{ mb: 1, fontWeight: 500 }}>Upcoming</Typography>
+            {apptStats.loading ? (
+              <CircularProgress size={28} sx={{ color: '#f9a825' }} />
+            ) : (
+              <Typography variant="h3" align="center" sx={{ fontWeight: 700 }}>{apptStats.upcoming}</Typography>
+            )}
+          </Box>
+        </Box>
+        {/* Main Content - Right */}
+        <div className="app-main-content" style={{ flex: 1, paddingLeft: 32, paddingBottom: '80px' }}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={tabIndex}
@@ -155,14 +149,13 @@ function Home() {
             </motion.div>
           </AnimatePresence>
         </div>
-        {/* Updated Section Ends Here */}
       </main>
 
       <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
-        <BottomNavigation value={tabIndex} onChange={handleTabChange}>
-          <BottomNavigationAction label="Manage" icon={<ManageIcon />} />
-          <BottomNavigationAction label="Report" icon={<ReportIcon />} />
+        <BottomNavigation value={tabIndex} onChange={handleTabChange} showLabels>
+          <BottomNavigationAction label="Appointments" icon={<ManageIcon />} />
           <BottomNavigationAction label="Patients" icon={<PersonIcon />} />
+          <BottomNavigationAction label="Report" icon={<ReportIcon />} />          
           {user.isAdmin && <BottomNavigationAction label="Users" icon={<PeopleIcon />} />}
         </BottomNavigation>
       </Paper>
