@@ -4,6 +4,7 @@ import {
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Dialog, DialogActions,
   DialogContent, DialogTitle, TextField, Button,
+  FormControl, InputLabel, Select, MenuItem,
   Grid, Snackbar, Alert, CircularProgress,
   Stack, Autocomplete, Divider, ListItem, ListItemText
 } from '@mui/material';
@@ -134,6 +135,7 @@ const TabManage = () => {
         handleCloseDialog();
         // Then reload the appointments data
         await loadAppointments();
+        if (window.refreshDashboardCards) window.refreshDashboardCards();
       } else {
         setNotification({
           open: true,
@@ -166,6 +168,7 @@ const TabManage = () => {
             message: 'Appointment deleted successfully',
             severity: 'success'
           });
+          if (window.refreshDashboardCards) window.refreshDashboardCards();
         } else {
           setNotification({
             open: true,
@@ -425,13 +428,19 @@ const TabManage = () => {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Status"
-                    name="status"
-                    value={currentAppointment.status || ''}
-                    onChange={handleInputChange}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      name="status"
+                      value={currentAppointment.status || ''}
+                      onChange={handleInputChange}
+                      label="Status"
+                    >
+                      <MenuItem value="scheduled">Scheduled</MenuItem>
+                      <MenuItem value="completed">Completed</MenuItem>
+                      <MenuItem value="cancelled">Cancelled</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
