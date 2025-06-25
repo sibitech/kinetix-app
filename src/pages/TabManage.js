@@ -361,6 +361,7 @@ const TabManage = () => {
             value={selectedDate}
             onChange={handleDateChange}
             sx={{ width: 220 }}
+            format="dd/MM/yyyy"
           />
         </Box>
 
