@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { BottomNavigation, BottomNavigationAction, Paper, Grid, CircularProgress, Typography, Box } from '@mui/material';
+import { BottomNavigation, BottomNavigationAction, Paper, CircularProgress, Typography, Box } from '@mui/material';
 import ManageIcon from '@mui/icons-material/Book';
 import ReportIcon from '@mui/icons-material/Assessment';
 import PeopleIcon from '@mui/icons-material/People';

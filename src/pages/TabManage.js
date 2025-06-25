@@ -5,7 +5,7 @@ import {
   TableHead, TableRow, Dialog, DialogActions,
   DialogContent, DialogTitle, TextField, Button,
   FormControl, InputLabel, Select, MenuItem,
-  Grid, Snackbar, Alert, CircularProgress,
+  Snackbar, Alert, CircularProgress,
   Stack, Autocomplete, Divider, ListItem, ListItemText
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -319,13 +319,6 @@ const TabManage = () => {
     setBookNotification({ ...bookNotification, open: false });
   };
 
-  const handleCreateNewPatient = () => {
-    setOpenSuggestions(false);
-    setPatientSuggestions([]);
-    setTimeout(() => {
-      setShowPatientForm(true);
-    }, 50);
-  };
 
   const handlePatientAdded = (newPatient) => {
     setShowPatientForm(false);
@@ -418,9 +411,11 @@ const TabManage = () => {
                       type="tel"
                       name="phone"
                       value={currentAppointment.phone || ''}
+                      disabled
                       onChange={handleInputChange} />
                   <TextField
                     fullWidth
+                    disabled
                     label="Patient Name"
                     name="patient_name"
                     value={currentAppointment.patient_name || ''}
