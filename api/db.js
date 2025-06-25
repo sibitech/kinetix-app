@@ -142,7 +142,8 @@ async function fetchAppointmentsByDateAndByLocation(date, timeZone, location) {
         notes,
         amount,
         kx_clinic_locations.name as clinic_location,
-        kx_clinic_locations.id as clinic_id
+        kx_clinic_locations.id as clinic_id,
+        payment_mode
       `;
 
       let query;
@@ -197,6 +198,7 @@ async function updateAppointment(payload) {
         diagnosis,
         notes,
         amount,
+        paymentMode,
         updated_by, // Assuming this is the current user
         clinic_id,
         timeZone
@@ -215,9 +217,10 @@ async function updateAppointment(payload) {
           amount = $6,
           updated_at = $7,
           updated_by = $8,
-          clinic_location = $9
+          clinic_location = $9,
+          payment_mode = $10
         WHERE 
-          id = $10
+          id = $11
         RETURNING id
       `;
 
@@ -231,6 +234,7 @@ async function updateAppointment(payload) {
         now,
         updated_by,
         clinic_id,
+        paymentMode,
         id
       ]);
 

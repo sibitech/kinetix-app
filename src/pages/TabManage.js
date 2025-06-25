@@ -107,6 +107,7 @@ const TabManage = () => {
         diagnosis: currentAppointment.diagnosis,
         notes: currentAppointment.notes,
         amount: currentAppointment.amount,
+        paymentMode: currentAppointment.payment_mode,
         updated_by: currentUser,
         clinic_id: 1,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -404,79 +405,77 @@ const TabManage = () => {
         )}
 
         {/* Edit Appointment Dialog */}
-        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
           <DialogTitle>Edit Appointment</DialogTitle>
           <DialogContent>
+            <Box component="form" onSubmit={handleBookSubmit} noValidate sx={{ maxWidth: 400, mx: 'auto' }}>
+              <Stack spacing={2}>
             {currentAppointment && (
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} sm={6}>
+              
+                  <><TextField
+                      fullWidth
+                      label="Phone Number"
+                      type="tel"
+                      name="phone"
+                      value={currentAppointment.phone || ''}
+                      onChange={handleInputChange} />
                   <TextField
                     fullWidth
                     label="Patient Name"
                     name="patient_name"
                     value={currentAppointment.patient_name || ''}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Phone Number"
-                    type="tel"
-                    name="phone"
-                    value={currentAppointment.phone || ''}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      name="status"
-                      value={currentAppointment.status || ''}
-                      onChange={handleInputChange}
-                      label="Status"
-                    >
-                      <MenuItem value="scheduled">Scheduled</MenuItem>
-                      <MenuItem value="completed">Completed</MenuItem>
-                      <MenuItem value="cancelled">Cancelled</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Amount"
-                    name="amount"
-                    type="number"
-                    value={currentAppointment.amount || ''}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Diagnosis"
-                    name="diagnosis"
-                    multiline
-                    rows={2}
-                    value={currentAppointment.diagnosis || ''}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Notes"
-                    name="notes"
-                    multiline
-                    rows={3}
-                    value={currentAppointment.notes || ''}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-              </Grid>
+                    onChange={handleInputChange} />
+                    <FormControl fullWidth>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        name="status"
+                        value={currentAppointment.status || ''}
+                        onChange={handleInputChange}
+                        label="Status"
+                      >
+                        <MenuItem value="scheduled">Scheduled</MenuItem>
+                        <MenuItem value="completed">Completed</MenuItem>
+                        <MenuItem value="cancelled">Cancelled</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth>
+                      <InputLabel>Payment Mode</InputLabel>
+                      <Select
+                        name="payment_mode"
+                        value={currentAppointment.payment_mode || ''}
+                        onChange={handleInputChange}
+                        label="Payment Mode"
+                      >
+                        <MenuItem value="cash">Cash</MenuItem>
+                        <MenuItem value="online">Online</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      fullWidth
+                      label="Amount"
+                      name="amount"
+                      type="number"
+                      value={currentAppointment.amount || ''}
+                      onChange={handleInputChange} /><TextField
+                      fullWidth
+                      label="Diagnosis"
+                      name="diagnosis"
+                      multiline
+                      rows={2}
+                      value={currentAppointment.diagnosis || ''}
+                      onChange={handleInputChange} /><TextField
+                      fullWidth
+                      label="Notes"
+                      name="notes"
+                      multiline
+                      rows={3}
+                      value={currentAppointment.notes || ''}
+                      onChange={handleInputChange} /></>
+                
             )}
+            </Stack>  
+            </Box>
+          
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Cancel</Button>
@@ -540,10 +539,7 @@ const TabManage = () => {
                     if (option.id === 'create-new') {
                       return (
                         <React.Fragment key="create-new">
-                          <Divider />
-                          <ListItem {...props} onClick={handleCreateNewPatient}>
-                            <ListItemText primary="➕ Create New Patient" secondary="Add a new patient record" />
-                          </ListItem>
+                          <Divider />                          
                         </React.Fragment>
                       );
                     }
@@ -557,17 +553,7 @@ const TabManage = () => {
                     );
                   }}
                 />
-                {/* Patient name field */}
-                <TextField
-                  label="Patient Name"
-                  name="name"
-                  value={bookForm.name}
-                  onChange={handleBookChange}
-                  error={!!bookErrors.name}
-                  helperText={bookErrors.name || "Patient name will be filled automatically when selected above"}
-                  required
-                  fullWidth
-                />
+                
                 {/* Date and time field */}
                 <TextField
                   label="Appointment Date & Time"
