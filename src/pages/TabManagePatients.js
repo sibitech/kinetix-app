@@ -293,6 +293,7 @@ const TabManagePatients = () => {
                   label="Date of Birth"
                   value={currentPatient.dob}
                   onChange={handleDateChange}
+                  disableFuture
                   sx={{ width: '100%' }}
                   slotProps={{ textField: { fullWidth: true } }}
                 />
